@@ -1,3 +1,14 @@
+bl_info = {
+    "name": "Pulse Commit",
+    "author": "Jean-Francois Sarazin",
+    "version": (1, 0),
+    "blender": (3, 00, 0),
+    "location": "Menu > Pulse",
+    "description": "Run Pulse Commit Window",
+    "warning": "",
+    "doc_url": ""
+}
+
 import bpy
 import sys
 import importlib
