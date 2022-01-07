@@ -1,10 +1,10 @@
 bl_info = {
-    "name": "Pulse Commit",
+    "name": "Pulse",
     "author": "Jean-Francois Sarazin",
-    "version": (1, 0),
-    "blender": (3, 00, 0),
+    "version": (1, 0, 0),
+    "blender": (3, 0, 0),
     "location": "Menu > Pulse",
-    "description": "Run Pulse Commit Window",
+    "description": "Blender 3D Pulse Addon",
     "warning": "",
     "doc_url": ""
 }
@@ -13,17 +13,16 @@ import bpy
 import sys
 import importlib
 import os
-sys.path.append(r"C:\Users\dddje\PycharmProjects\pulse\python")
 import pulse.api as pulse
 import pulse.uri_standards as uri_std
 import pulse.exception as pulse_exception
 
-    
+
 class PulseCommit(bpy.types.Operator):
     """Send the current work area to Pulse"""
     bl_idname = "pulse.commit"
     bl_label = "Pulse Commit"
-    comment : bpy.props.StringProperty(name="comment", default="")
+    comment: bpy.props.StringProperty(name="comment", default="")
     work = None
     changes = None
 
@@ -31,7 +30,7 @@ class PulseCommit(bpy.types.Operator):
         if bpy.data.is_dirty:
             self.report({'ERROR'}, "Current file should be saved before commit")
             return {'FINISHED'}
-            
+
         importlib.reload(pulse)
         wm = context.window_manager
         try:
@@ -45,7 +44,7 @@ class PulseCommit(bpy.types.Operator):
         self.changes = self.work.status()
         return wm.invoke_props_dialog(self)
 
-    def draw(self,context):
+    def draw(self, context):
         layout = self.layout
         if not self.changes:
             layout.label(text="No change to commit")
@@ -54,7 +53,7 @@ class PulseCommit(bpy.types.Operator):
         layout.separator()
         layout.label(text="changes:")
         box = layout.box()
-        for k in self.changes:        
+        for k in self.changes:
             box.label(text=(self.changes[k] + " : " + k))
 
     def execute(self, context):
@@ -76,7 +75,7 @@ class TOPBAR_MT_pulse_menu(bpy.types.Menu):
         self.layout.menu("TOPBAR_MT_pulse_menu")
 
 
-classes = (PulseCommit, TOPBAR_MT_pulse_menu)       
+classes = (PulseCommit, TOPBAR_MT_pulse_menu)
 
 
 def register():
