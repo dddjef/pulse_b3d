@@ -82,8 +82,12 @@ class PulseCommit(bpy.types.Operator):
         layout.separator()
         layout.label(text="inputs:")
         box = layout.box()
-        for fp in self.blend_inputs:
-            box.label(text=fp, icon='ERROR')
+        work_inputs = [self.work.get_input_product(input_name) for input_name in self.work.get_inputs()]
+        for uri in self.blend_inputs:
+            if uri not in work_inputs:
+                box.label(text=uri, icon='ERROR')
+            else:
+                box.label(text=uri)
 
         # unknow_inputs UI
         layout.separator()
