@@ -1,9 +1,9 @@
 bl_info = {
     "name": "Pulse",
     "author": "Jean-Francois Sarazin",
-    "version": (1, 0, 0),
+    "version": (0, 5, 0),
     "blender": (3, 0, 0),
-    "location": "Menu > Pulse",
+    "location": "Main Menu > Pulse",
     "description": "Blender 3D Pulse Addon",
     "warning": "",
     "doc_url": ""
@@ -18,6 +18,14 @@ import pulse.uri_standards as uri_std
 import pulse.exception as pulse_exception
 
 
+def list_blend_input_files():
+    rval = set()
+    for img in bpy.data.images:
+        if img.filepath is not None:
+            rval.add(os.path.realpath(bpy.path.abspath(img.filepath)))
+    return rval
+
+
 class PulseCommit(bpy.types.Operator):
     """Send the current work area to Pulse"""
     bl_idname = "pulse.commit"
@@ -25,6 +33,8 @@ class PulseCommit(bpy.types.Operator):
     comment: bpy.props.StringProperty(name="comment", default="")
     work = None
     changes = None
+    blend_inputs = []
+    unknown_inputs = []
 
     def invoke(self, context, event):
         if bpy.data.is_dirty:
@@ -42,6 +52,16 @@ class PulseCommit(bpy.types.Operator):
             self.report({'ERROR'}, "Current blend file not in a pulse project")
             return {'FINISHED'}
         self.changes = self.work.status()
+
+        # try to convert all blend file inputs as pulse product
+        for filepath in list_blend_input_files():
+            try:
+                uri = uri_std.path_to_uri(filepath)
+                product = prj.get_commit_product(uri)
+                self.blend_inputs.append(uri)
+            except pulse_exception.PulseError:
+                self.unknown_inputs.append(filepath)
+
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -50,11 +70,27 @@ class PulseCommit(bpy.types.Operator):
             layout.label(text="No change to commit")
             return
         layout.prop(self, "comment")
+
+        # changes UI
         layout.separator()
         layout.label(text="changes:")
         box = layout.box()
         for k in self.changes:
             box.label(text=(self.changes[k] + " : " + k))
+
+        # inputs UI
+        layout.separator()
+        layout.label(text="inputs:")
+        box = layout.box()
+        for fp in self.blend_inputs:
+            box.label(text=fp, icon='ERROR')
+
+        # unknow_inputs UI
+        layout.separator()
+        layout.label(text="unknown inputs:")
+        box = layout.box()
+        for fp in self.unknown_inputs:
+            box.label(text=fp)
 
     def execute(self, context):
         if not self.changes:
