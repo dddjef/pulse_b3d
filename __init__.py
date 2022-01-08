@@ -37,6 +37,9 @@ class PulseCommit(bpy.types.Operator):
     unknown_inputs = []
 
     def invoke(self, context, event):
+        self.blend_inputs = []
+        self.unknown_inputs = []
+
         if bpy.data.is_dirty:
             self.report({'ERROR'}, "Current file should be saved before commit")
             return {'FINISHED'}
