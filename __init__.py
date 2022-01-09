@@ -26,6 +26,16 @@ def list_blend_input_files():
     return rval
 
 
+def draw_inputs(layout, input_status, input_list, icon='NONE'):
+    if not input_list:
+        return
+    layout.separator()
+    layout.label(text=input_status, icon=icon)
+    box = layout.box()
+    for uri in input_list:
+        box.label(text=uri)
+
+
 class PulseCommit(bpy.types.Operator):
     """Send the current work area to Pulse"""
     bl_idname = "pulse.commit"
@@ -33,18 +43,27 @@ class PulseCommit(bpy.types.Operator):
     comment: bpy.props.StringProperty(name="comment", default="")
     work = None
     changes = None
-    blend_inputs = []
-    unknown_inputs = []
+    external_files = []
+    registered_inputs = []
+    unregistered_inputs = []
+    work_inputs = []
+    obsolete_inputs = []
 
     def invoke(self, context, event):
-        self.blend_inputs = []
-        self.unknown_inputs = []
+
+        self.external_files = []
+        self.registered_inputs = []
+        self.unregistered_inputs = []
+        self.work_inputs = []
+        self.obsolete_inputs = []
 
         if bpy.data.is_dirty:
             self.report({'ERROR'}, "Current file should be saved before commit")
             return {'FINISHED'}
 
+        # this reload could be removed dev purpose only
         importlib.reload(pulse)
+
         wm = context.window_manager
         try:
             prj = pulse.get_project_from_path(bpy.data.filepath)
@@ -57,13 +76,26 @@ class PulseCommit(bpy.types.Operator):
         self.changes = self.work.status()
 
         # try to convert all blend file inputs as pulse product
+        scene_pulse_inputs = []
         for filepath in list_blend_input_files():
             try:
                 uri = uri_std.path_to_uri(filepath)
                 product = prj.get_commit_product(uri)
-                self.blend_inputs.append(uri)
+                scene_pulse_inputs.append(product)
             except pulse_exception.PulseError:
-                self.unknown_inputs.append(filepath)
+                self.external_files.append(filepath)
+
+        work_inputs_uri = [self.work.get_input_product(input_name).uri for input_name in self.work.get_inputs()]
+        for product in scene_pulse_inputs:
+            if isinstance(product, pulse.WorkProduct):
+                self.work_inputs.append(product.uri)
+            elif product.uri in work_inputs_uri:
+                self.registered_inputs.append(product.uri)
+                work_inputs_uri.remove(product.uri)
+            else:
+                self.unregistered_inputs.append(product.uri)
+
+        self.obsolete_inputs = work_inputs_uri
 
         return wm.invoke_props_dialog(self)
 
@@ -82,22 +114,12 @@ class PulseCommit(bpy.types.Operator):
             box.label(text=(self.changes[k] + " : " + k))
 
         # inputs UI
-        layout.separator()
-        layout.label(text="inputs:")
-        box = layout.box()
-        work_inputs = [self.work.get_input_product(input_name).uri for input_name in self.work.get_inputs()]
-        for uri in self.blend_inputs:
-            if uri not in work_inputs:
-                box.label(text=uri, icon='ERROR')
-            else:
-                box.label(text=uri)
+        draw_inputs(layout, "Registered Inputs", self.registered_inputs)
+        draw_inputs(layout, "Unregistered Inputs", self.unregistered_inputs, "QUESTION")
+        draw_inputs(layout, "Work inputs", self.work_inputs, "ERROR")
+        draw_inputs(layout, "External Files", self.external_files, "QUESTION")
+        draw_inputs(layout, "Obsolete Inputs", self.obsolete_inputs, "QUESTION")
 
-        # unknow_inputs UI
-        layout.separator()
-        layout.label(text="unknown inputs:")
-        box = layout.box()
-        for fp in self.unknown_inputs:
-            box.label(text=fp)
 
     def execute(self, context):
         if not self.changes:
