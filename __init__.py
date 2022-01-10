@@ -80,10 +80,19 @@ class PulseCommit(bpy.types.Operator):
         for filepath in list_blend_input_files():
             try:
                 uri = uri_std.path_to_uri(filepath)
-                product = prj.get_commit_product(uri)
-                scene_pulse_inputs.append(product)
-            except pulse_exception.PulseError:
+            except pulse.PulseError:
                 self.external_files.append(filepath)
+                continue
+
+            try:
+                product = prj.get_work_product(uri)
+                scene_pulse_inputs.append(product)
+            except pulse.PulseError as e:
+                try:
+                    product = prj.get_commit_product(uri)
+                    scene_pulse_inputs.append(product)
+                except (pulse.PulseError, pulse.PulseDatabaseMissingObject):
+                    pass
 
         work_inputs_uri = [self.work.get_input_product(input_name).uri for input_name in self.work.get_inputs()]
         for product in scene_pulse_inputs:
