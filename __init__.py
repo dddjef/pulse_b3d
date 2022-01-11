@@ -19,11 +19,11 @@ import pulse.exception as pulse_exception
 
 
 def list_blend_input_files():
-    rval = set()
+    input_files = set()
     for img in bpy.data.images:
         if img.filepath is not None:
-            rval.add(os.path.realpath(bpy.path.abspath(img.filepath)))
-    return rval
+            input_files.add(os.path.realpath(bpy.path.abspath(img.filepath)))
+    return input_files
 
 
 def draw_inputs(layout, input_status, input_list, icon='NONE'):
@@ -78,24 +78,32 @@ class PulseCommit(bpy.types.Operator):
         # try to convert all blend file inputs as pulse product
         scene_pulse_inputs = []
         for filepath in list_blend_input_files():
+
+            # collect external files, (path can't tbe converted as uri)
             try:
                 uri = uri_std.path_to_uri(filepath)
             except pulse.PulseError:
                 self.external_files.append(filepath)
                 continue
 
+            # collect work products
             try:
                 product = prj.get_work_product(uri)
                 scene_pulse_inputs.append(product)
-            except pulse.PulseError as e:
-                try:
-                    product = prj.get_commit_product(uri)
-                    scene_pulse_inputs.append(product)
-                except (pulse.PulseError, pulse.PulseDatabaseMissingObject):
-                    pass
+                continue
+            except pulse.PulseError:
+                pass
+
+            # collect commit products
+            try:
+                product = prj.get_commit_product(uri)
+                scene_pulse_inputs.append(product)
+            except (pulse.PulseError, pulse.PulseDatabaseMissingObject):
+                pass
 
         work_inputs_uri = [self.work.get_input_product(input_name).uri for input_name in self.work.get_inputs()]
         for product in scene_pulse_inputs:
+            # discriminate products between work, and registered and unregistered product
             if isinstance(product, pulse.WorkProduct):
                 self.work_inputs.append(product.uri)
             elif product.uri in work_inputs_uri:
@@ -104,6 +112,7 @@ class PulseCommit(bpy.types.Operator):
             else:
                 self.unregistered_inputs.append(product.uri)
 
+        # collect current work inputs which aren't used anymore by the current blend file
         self.obsolete_inputs = work_inputs_uri
 
         return wm.invoke_props_dialog(self)
@@ -129,11 +138,14 @@ class PulseCommit(bpy.types.Operator):
         draw_inputs(layout, "External Files", self.external_files, "QUESTION")
         draw_inputs(layout, "Obsolete Inputs", self.obsolete_inputs, "QUESTION")
 
-
     def execute(self, context):
         if not self.changes:
             return {'FINISHED'}
-        commit = self.work.commit(comment=self.comment)
+        try:
+            commit = self.work.commit(comment=self.comment)
+        except pulse.PulseError as e:
+            self.report({'ERROR'}, "Pulse Error : " + str(e))
+            return {'FINISHED'}
         self.report({'INFO'}, "Commit version " + str(commit.version))
         return {'FINISHED'}
 
