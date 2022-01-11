@@ -18,11 +18,17 @@ import pulse.uri_standards as uri_std
 import pulse.exception as pulse_exception
 
 
+def collect_filepath(datablocks, path_list):
+    for obj in datablocks:
+        if obj.filepath is not None:
+            path_list.add(os.path.realpath(bpy.path.abspath(obj.filepath)))
+
+# TODO : test with packed texture
 def list_blend_input_files():
     input_files = set()
-    for img in bpy.data.images:
-        if img.filepath is not None:
-            input_files.add(os.path.realpath(bpy.path.abspath(img.filepath)))
+    collect_filepath(bpy.data.images, input_files)
+    collect_filepath(bpy.data.libraries, input_files)
+
     return input_files
 
 
