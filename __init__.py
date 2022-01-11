@@ -20,14 +20,20 @@ import pulse.exception as pulse_exception
 
 def collect_filepath(datablocks, path_list):
     for obj in datablocks:
+        if not hasattr(obj, "filepath"):
+            continue
         if obj.filepath is not None:
             path_list.add(os.path.realpath(bpy.path.abspath(obj.filepath)))
 
-# TODO : test with packed texture
+# TODO : packed texture are detected as regular
 def list_blend_input_files():
     input_files = set()
     collect_filepath(bpy.data.images, input_files)
     collect_filepath(bpy.data.libraries, input_files)
+    for scene in bpy.data.scenes:
+        if not scene.sequence_editor:
+            continue
+        collect_filepath(scene.sequence_editor.sequences_all, input_files)
 
     return input_files
 
