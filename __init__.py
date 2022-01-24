@@ -18,14 +18,17 @@ import pulse.uri_standards as uri_std
 import pulse.exception as pulse_exception
 
 
-def collect_filepath(datablocks, path_list):
+def collect_filepath(datablocks, path_list, packable=True):
     for obj in datablocks:
         if not hasattr(obj, "filepath"):
             continue
-        if obj.filepath is not None:
+        if obj.filepath:
+            if packable:
+                if obj.packed_file:
+                    continue
             path_list.add(os.path.realpath(bpy.path.abspath(obj.filepath)))
 
-# TODO : packed texture are detected as regular
+# TODO : collect movie clip
 def list_blend_input_files():
     input_files = set()
     collect_filepath(bpy.data.images, input_files)
@@ -33,7 +36,8 @@ def list_blend_input_files():
     for scene in bpy.data.scenes:
         if not scene.sequence_editor:
             continue
-        collect_filepath(scene.sequence_editor.sequences_all, input_files)
+        # TODO : find a way to detect if a movieSequence or a SoundSequence is packed
+        collect_filepath(scene.sequence_editor.sequences_all, input_files, packable=False)
 
     return input_files
 
