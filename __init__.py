@@ -19,6 +19,7 @@ import pulse.exception as pulse_exception
 
 
 def collect_filepath(datablocks, path_list, packable=True):
+    # the packable argument should be removed as soon there's a way to detect if movieclips or sequencer clip is packed
     for obj in datablocks:
         if not hasattr(obj, "filepath"):
             continue
@@ -28,15 +29,15 @@ def collect_filepath(datablocks, path_list, packable=True):
                     continue
             path_list.add(os.path.realpath(bpy.path.abspath(obj.filepath)))
 
-# TODO : collect movie clip
+
 def list_blend_input_files():
     input_files = set()
     collect_filepath(bpy.data.images, input_files)
     collect_filepath(bpy.data.libraries, input_files)
+    collect_filepath(bpy.data.movieclips, input_files, packable=False)
     for scene in bpy.data.scenes:
         if not scene.sequence_editor:
             continue
-        # TODO : find a way to detect if a movieSequence or a SoundSequence is packed
         collect_filepath(scene.sequence_editor.sequences_all, input_files, packable=False)
 
     return input_files
@@ -77,8 +78,8 @@ class PulseCommit(bpy.types.Operator):
             self.report({'ERROR'}, "Current file should be saved before commit")
             return {'FINISHED'}
 
-        # this reload could be removed dev purpose only
-        importlib.reload(pulse)
+        # enable this if you need to edit pulse library
+        # importlib.reload(pulse)
 
         wm = context.window_manager
         try:
