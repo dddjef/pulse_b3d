@@ -43,14 +43,31 @@ def list_blend_input_files():
     return input_files
 
 
-def draw_inputs(layout, input_status, input_list, icon='NONE'):
+def draw_inputs(layout, input_status, input_list, context, icon='NONE'):
     if not input_list:
         return
     layout.separator()
-    layout.label(text=input_status, icon=icon)
-    box = layout.box()
-    for uri in input_list:
-        box.label(text=uri)
+    row = layout.row()
+    expanded = context.preferences.addons[__name__].preferences.expanded
+    row.prop(context.preferences.addons[__name__].preferences, "expanded",
+             icon="TRIA_DOWN" if expanded else "TRIA_RIGHT",
+             icon_only=True, emboss=False
+             )
+    row.label(text=input_status)
+    if expanded:
+        # some data on the subpanel
+        box = layout.box()
+        for uri in input_list:
+            box.label(text=uri)
+
+
+class PulseAddonPreferences(bpy.types.AddonPreferences):
+    bl_idname = __name__
+
+    expanded: bpy.props.BoolProperty(
+        name="Expanded interface",
+        default=False,
+    )
 
 
 class PulseCommit(bpy.types.Operator):
@@ -149,11 +166,11 @@ class PulseCommit(bpy.types.Operator):
             box.label(text=(self.changes[k] + " : " + k))
 
         # inputs UI
-        draw_inputs(layout, "Registered Inputs", self.registered_inputs)
-        draw_inputs(layout, "Unregistered Inputs", self.unregistered_inputs, "QUESTION")
-        draw_inputs(layout, "Work inputs", self.work_inputs, "ERROR")
-        draw_inputs(layout, "External Files", self.external_files, "QUESTION")
-        draw_inputs(layout, "Obsolete Inputs", self.obsolete_inputs, "QUESTION")
+        draw_inputs(layout, "Registered Inputs", self.registered_inputs, context)
+        draw_inputs(layout, "Unregistered Inputs", self.unregistered_inputs, context, "QUESTION")
+        draw_inputs(layout, "Work inputs", self.work_inputs, context, "ERROR")
+        draw_inputs(layout, "External Files", self.external_files, context, "QUESTION")
+        draw_inputs(layout, "Obsolete Inputs", self.obsolete_inputs, context, "QUESTION")
 
     def execute(self, context):
         if not self.changes:
@@ -178,19 +195,20 @@ class TOPBAR_MT_pulse_menu(bpy.types.Menu):
         self.layout.menu("TOPBAR_MT_pulse_menu")
 
 
-classes = (PulseCommit, TOPBAR_MT_pulse_menu)
+classes = (PulseCommit, TOPBAR_MT_pulse_menu, PulseAddonPreferences)
 
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR_MT_pulse_menu.menu_draw)
-
+    # bpy.types.AddonPreferences.pulse_expanded = bpy.props.BoolProperty(default=False)
 
 def unregister():
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR_MT_pulse_menu.menu_draw)
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    # del bpy.types.AddonPreferences.pulse_expanded
 
 
 if __name__ == "__main__":
