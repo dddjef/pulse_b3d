@@ -168,7 +168,8 @@ class PulseCommit(bpy.types.Operator):
 
         # inputs UI
         draw_expandable_list(self, layout, "Registered Inputs", self.registered_inputs, "registered_inputs_expanded")
-        draw_expandable_list(self, layout, "Unregistered Inputs", self.unregistered_inputs, "unregistered_inputs_expanded")
+        draw_expandable_list(
+            self, layout, "Unregistered Inputs", self.unregistered_inputs, "unregistered_inputs_expanded")
         draw_expandable_list(self, layout, "Work inputs", self.work_inputs, "work_inputs_expanded")
         draw_expandable_list(self, layout, "External Files", self.external_files, "external_files_expanded")
         draw_expandable_list(self, layout, "Obsolete Inputs", self.obsolete_inputs, "obsolete_inputs_expanded")
@@ -203,6 +204,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR_MT_pulse_menu.menu_draw)
+
 
 def unregister():
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR_MT_pulse_menu.menu_draw)
