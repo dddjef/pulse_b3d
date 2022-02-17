@@ -164,11 +164,7 @@ class PulseCommit(bpy.types.Operator):
         layout.prop(self, "comment")
 
         # changes UI
-        layout.separator()
-        layout.label(text="changes:")
-        box = layout.box()
-        for k in self.changes:
-            box.label(text=(self.changes[k] + " : " + k))
+        draw_expandable_list(self, layout, "Changes", self.changes, "changes_expanded")
 
         # inputs UI
         draw_expandable_list(self, layout, "Registered Inputs", self.registered_inputs, "registered_inputs_expanded")
