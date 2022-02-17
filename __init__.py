@@ -43,22 +43,21 @@ def list_blend_input_files():
     return input_files
 
 
-def draw_inputs(addon, layout, input_status, input_list, context, expanded_attr):
-    if not input_list:
+def draw_expandable_list(addon, layout, title, items, expanded_attr):
+    if not items:
         return
     layout.separator()
     row = layout.row()
-    expanded = eval("addon." + expanded_attr)
+    expanded = getattr(addon, expanded_attr)
     row.prop(addon, expanded_attr,
              icon="TRIA_DOWN" if expanded else "TRIA_RIGHT",
              icon_only=True, emboss=False
              )
-    row.label(text=input_status)
+    row.label(text=title + "  (" + str(len(items)) + ")")
     if expanded:
-        # some data on the subpanel
         box = layout.box()
-        for uri in input_list:
-            box.label(text=uri)
+        for item in items:
+            box.label(text=item)
 
 
 class PulseAddonPreferences(bpy.types.AddonPreferences):
@@ -82,6 +81,7 @@ class PulseCommit(bpy.types.Operator):
     unregistered_inputs = []
     work_inputs = []
     obsolete_inputs = []
+    changes_expanded: bpy.props.BoolProperty(default=True)
     registered_inputs_expanded: bpy.props.BoolProperty(default=False)
     unregistered_inputs_expanded: bpy.props.BoolProperty(default=False)
     external_files_expanded: bpy.props.BoolProperty(default=False)
@@ -171,11 +171,11 @@ class PulseCommit(bpy.types.Operator):
             box.label(text=(self.changes[k] + " : " + k))
 
         # inputs UI
-        draw_inputs(self, layout, "Registered Inputs", self.registered_inputs, context, "registered_inputs_expanded")
-        draw_inputs(self, layout, "Unregistered Inputs", self.unregistered_inputs, context, "unregistered_inputs_expanded")
-        draw_inputs(self, layout, "Work inputs", self.work_inputs, context, "work_inputs_expanded")
-        draw_inputs(self, layout, "External Files", self.external_files, context, "external_files_expanded")
-        draw_inputs(self, layout, "Obsolete Inputs", self.obsolete_inputs, context, "obsolete_inputs_expanded")
+        draw_expandable_list(self, layout, "Registered Inputs", self.registered_inputs, "registered_inputs_expanded")
+        draw_expandable_list(self, layout, "Unregistered Inputs", self.unregistered_inputs, "unregistered_inputs_expanded")
+        draw_expandable_list(self, layout, "Work inputs", self.work_inputs, "work_inputs_expanded")
+        draw_expandable_list(self, layout, "External Files", self.external_files, "external_files_expanded")
+        draw_expandable_list(self, layout, "Obsolete Inputs", self.obsolete_inputs, "obsolete_inputs_expanded")
 
     def execute(self, context):
         if not self.changes:
